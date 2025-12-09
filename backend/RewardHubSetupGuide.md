@@ -51,7 +51,7 @@ Install the following:
 cd ~/projects
 
 # Clone the repo
-git clone https://github.com/your-username/RewardHub.git
+git clone https://github.com/hasan6-9/RewardHub.git
 cd RewardHub
 ```
 
