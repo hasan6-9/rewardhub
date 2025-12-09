@@ -1,23 +1,62 @@
-# Node modules (ignore all of them everywhere)
+# -------------------------
+# Node / General
+# -------------------------
 node_modules/
-
-# Environment variables (root + subfolders)
-.env
-.env.*
-
-# Logs
-*.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
+*.log
 
-# Build output
+# -------------------------
+# Nuxt (Frontend)
+# -------------------------
+.nuxt/
+.output/
 dist/
 build/
 
-# OS files
-.DS_Store
+# Nitro output
+.server/
+.nitro/
 
-# IDE settings
+# Local env files
+.env
+.env.*
+*.local
+
+# Lock files (optional but recommended)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# -------------------------
+# Backend (Node/Express)
+# -------------------------
+backend/node_modules/
+backend/*.env
+backend/.env
+backend/.env.*
+
+# -------------------------
+# IDE / Editor
+# -------------------------
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# -------------------------
+# System files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Temporary files
+# -------------------------
+*.temp
+*.tmp

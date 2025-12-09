@@ -5,8 +5,11 @@ const blockchain = require("../blockchain/contract");
 // GET /api/blockchain/balance/:wallet
 router.get("/balance/:wallet", async (req, res) => {
   try {
-    const balance = await blockchain.getTokenBalance(req.params.wallet);
-    res.json({ balance });
+    const balanceData = await blockchain.getTokenBalance(req.params.wallet);
+    res.json({ 
+      wallet: req.params.wallet,
+      ...balanceData 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

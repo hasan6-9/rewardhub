@@ -2,9 +2,16 @@ const mongoose = require("mongoose");
 
 const achievementSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
+    title: { type: String, required: true, unique: true },
     description: String,
     tokenReward: { type: Number, required: true },
+    createdBy: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "User",
+      default: null 
+    },
+    onChainCreated: { type: Boolean, default: false },
+    onChainTx: { type: String, default: null },
   },
   { timestamps: true }
 );

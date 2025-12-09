@@ -7,6 +7,8 @@ const studentAchievementRoutes = require("./routes/studentAchievements");
 const rewardRoutes = require("./routes/rewards");
 const redemptionRoutes = require("./routes/redemptions");
 const blockchainRoutes = require("./routes/blockchain");
+const adminRoutes = require("./routes/admin");
+const walletRoutes = require("./routes/wallet");
 require("dotenv").config();
 const cors = require("cors");
 
@@ -25,6 +27,8 @@ app.use("/api/student-achievements", studentAchievementRoutes);
 app.use("/api/rewards", rewardRoutes);
 app.use("/api/redemptions", redemptionRoutes);
 app.use("/api/blockchain", blockchainRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/users/wallet", walletRoutes);
 
 // Server Start
 const PORT = process.env.PORT || 5000;
