@@ -142,7 +142,7 @@ curl -X POST http://localhost:5000/api/users/wallet/verify \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <STUDENT_TOKEN>" \
   -d '{
-    "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "address": "0x9B252079d6A7021042380e14E3964521142dDca9",
     "signature": "0x..."
   }'
 ```
@@ -381,13 +381,13 @@ curl -X GET http://localhost:5000/api/admin/dashboard-stats \
 Get token balance for a wallet address.
 
 ```bash
-curl -X GET http://localhost:5000/api/blockchain/balance/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+curl -X GET http://localhost:5000/api/blockchain/balance/0x9B252079d6A7021042380e14E3964521142dDca9
 ```
 
 **Response:**
 ```json
 {
-  "wallet": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "wallet": "0x9B252079d6A7021042380e14E3964521142dDca9",
   "raw": "100000000000000000000",
   "human": 100
 }

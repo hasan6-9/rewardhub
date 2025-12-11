@@ -4,13 +4,26 @@ const { verifyToken } = require("../middleware/auth");
 const { requireRole } = require("../middleware/requireRole");
 const {
   logAchievement,
-  getAchievementsByStudent,
+  getAllAchievements,
+  getAchievementById,
+  getStudentAchievements,
+  deleteAchievement,
 } = require("../controllers/studentAchievementController");
+
+// Get all student achievements (with optional filters)
+router.get("/", getAllAchievements);
 
 // Faculty/Admin logs an achievement (requires authentication and faculty/admin role)
 router.post("/", verifyToken, requireRole("faculty", "admin"), logAchievement);
 
-// Get all achievements for a student (public or protected - keeping as is for now)
-router.get("/:studentId", getAchievementsByStudent);
+// Get single achievement by ID
+router.get("/:id", getAchievementById);
+
+// Get all achievements for a specific student
+router.get("/student/:studentId", getStudentAchievements);
+
+// Delete achievement (admin only)
+router.delete("/:id", verifyToken, requireRole("admin"), deleteAchievement);
 
 module.exports = router;
+
