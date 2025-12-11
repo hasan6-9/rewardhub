@@ -16,7 +16,8 @@ const calculateTokenBalance = async (studentId) => {
 
 // Redeem a reward
 exports.redeemReward = async (req, res) => {
-  const { studentId, rewardId, walletAddress } = req.body;
+  const { rewardId, walletAddress } = req.body;
+  const studentId = req.user.id; // Get ID from authenticated user token
 
   try {
     const reward = await Reward.findById(rewardId);

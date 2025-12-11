@@ -25,6 +25,18 @@ exports.registerUser = async (req, res) => {
   }
 };
 
+// Get current user profile
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password -walletNonce");
+    if (!user) return res.status(404).json({ msg: "User not found" });
+
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ msg: "Server error" });
+  }
+};
+
 // Login
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
