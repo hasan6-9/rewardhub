@@ -45,8 +45,9 @@ const walletStore = useWalletStore();
 async function connectWallet() {
   try {
     await walletStore.connect();
+    window.$toast?.("Wallet connected successfully!", "success");
   } catch (error) {
-    alert("Error connecting wallet: " + error.message);
+    window.$toast?.("Error connecting wallet: " + error.message, "error");
   }
 }
 

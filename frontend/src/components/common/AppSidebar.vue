@@ -8,7 +8,7 @@
         class="sidebar-link"
         active-class="active"
       >
-        <span class="link-icon">{{ link.icon }}</span>
+        <component :is="link.icon" class="link-icon" />
         <span class="link-text">{{ link.label }}</span>
       </router-link>
     </nav>
@@ -18,6 +18,11 @@
 <script setup>
 import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import DashboardIcon from "@/components/icons/DashboardIcon.vue";
+import UsersIcon from "@/components/icons/UsersIcon.vue";
+import TrophyIcon from "@/components/icons/TrophyIcon.vue";
+import GiftIcon from "@/components/icons/GiftIcon.vue";
+import WalletIcon from "@/components/icons/WalletIcon.vue";
 
 const authStore = useAuthStore();
 
@@ -26,26 +31,30 @@ const navLinks = computed(() => {
 
   if (role === "admin") {
     return [
-      { path: "/admin/dashboard", label: "Dashboard", icon: "📊" },
-      { path: "/admin/users", label: "Manage Users", icon: "👥" },
-      { path: "/admin/achievements", label: "Achievements", icon: "🏆" },
-      { path: "/admin/perks", label: "Perks", icon: "🎁" },
+      { path: "/admin/dashboard", label: "Dashboard", icon: DashboardIcon },
+      { path: "/admin/users", label: "Manage Users", icon: UsersIcon },
+      { path: "/admin/achievements", label: "Achievements", icon: TrophyIcon },
+      { path: "/admin/perks", label: "Perks", icon: GiftIcon },
     ];
   }
 
   if (role === "faculty") {
     return [
-      { path: "/faculty/dashboard", label: "Dashboard", icon: "📊" },
-      { path: "/faculty/award", label: "Award Achievements", icon: "🏆" },
+      { path: "/faculty/dashboard", label: "Dashboard", icon: DashboardIcon },
+      { path: "/faculty/award", label: "Award Achievements", icon: TrophyIcon },
     ];
   }
 
   if (role === "student") {
     return [
-      { path: "/student/dashboard", label: "Dashboard", icon: "📊" },
-      { path: "/student/achievements", label: "My Achievements", icon: "🏆" },
-      { path: "/student/perks", label: "Perks", icon: "🎁" },
-      { path: "/student/wallet", label: "Wallet", icon: "💳" },
+      { path: "/student/dashboard", label: "Dashboard", icon: DashboardIcon },
+      {
+        path: "/student/achievements",
+        label: "My Achievements",
+        icon: TrophyIcon,
+      },
+      { path: "/student/perks", label: "Perks", icon: GiftIcon },
+      { path: "/student/wallet", label: "Wallet", icon: WalletIcon },
     ];
   }
 
@@ -94,7 +103,10 @@ const navLinks = computed(() => {
 }
 
 .link-icon {
-  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .link-text {

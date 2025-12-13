@@ -76,6 +76,39 @@
   --transition-slow: 300ms ease-in-out;
 }
 
+/* Dark Mode Theme */
+[data-theme="dark"] {
+  /* Colors */
+  --primary-color: #3b82f6;
+  --primary-dark: #2563eb;
+  --primary-light: #60a5fa;
+
+  /* Background */
+  --bg-primary: #1f2937;
+  --bg-secondary: #111827;
+  --bg-tertiary: #374151;
+
+  /* Text */
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+
+  /* Border */
+  --border-color: #374151;
+
+  /* Grays (inverted for dark mode) */
+  --gray-50: #374151;
+  --gray-100: #4b5563;
+  --gray-200: #6b7280;
+  --gray-300: #9ca3af;
+  --gray-400: #d1d5db;
+  --gray-500: #e5e7eb;
+  --gray-600: #f3f4f6;
+  --gray-700: #f9fafb;
+  --gray-800: #ffffff;
+  --gray-900: #ffffff;
+}
+
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);

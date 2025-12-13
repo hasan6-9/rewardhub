@@ -94,7 +94,7 @@
           </table>
         </div>
 
-        <!-- Create/Edit Modal -->
+        <!-- Create Modal -->
         <BaseModal v-model="showCreateModal" title="Add New User">
           <form @submit.prevent="handleCreateUser">
             <div class="form-group">
@@ -141,6 +141,57 @@
             </button>
           </template>
         </BaseModal>
+
+        <!-- Edit Modal -->
+        <BaseModal v-model="showEditModal" title="Edit User">
+          <form @submit.prevent="handleUpdateUser">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input v-model="editForm.name" class="form-input" required />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input
+                v-model="editForm.email"
+                type="email"
+                class="form-input"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input
+                v-model="editForm.password"
+                type="password"
+                class="form-input"
+                placeholder="Leave blank to keep current password"
+              />
+              <small class="text-secondary"
+                >Only fill this if you want to change the password</small
+              >
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role</label>
+              <select v-model="editForm.role" class="form-select" required>
+                <option value="student">Student</option>
+                <option value="faculty">Faculty</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </form>
+          <template #footer>
+            <button
+              type="button"
+              @click="showEditModal = false"
+              class="btn btn-secondary"
+            >
+              Cancel
+            </button>
+            <button @click="handleUpdateUser" class="btn btn-primary">
+              Update User
+            </button>
+          </template>
+        </BaseModal>
       </main>
     </div>
   </div>
@@ -158,8 +209,16 @@ const usersStore = useUsersStore();
 const users = ref([]);
 const loading = ref(false);
 const showCreateModal = ref(false);
+const showEditModal = ref(false);
 const filters = ref({ role: "", walletConnected: "", search: "" });
 const userForm = ref({ name: "", email: "", password: "", role: "student" });
+const editForm = ref({
+  id: "",
+  name: "",
+  email: "",
+  password: "",
+  role: "student",
+});
 
 async function loadUsers() {
   loading.value = true;
@@ -173,7 +232,7 @@ async function loadUsers() {
     const data = await usersStore.fetchUsers(params);
     users.value = data.users;
   } catch (error) {
-    console.error("Error loading users:", error);
+    window.$toast?.("Error loading users: " + error.message, "error");
   } finally {
     loading.value = false;
   }
@@ -185,14 +244,50 @@ async function handleCreateUser() {
     showCreateModal.value = false;
     userForm.value = { name: "", email: "", password: "", role: "student" };
     await loadUsers();
+    window.$toast?.("User created successfully!", "success");
   } catch (error) {
-    console.error("Error creating user:", error);
+    window.$toast?.("Error creating user: " + error.message, "error");
   }
 }
 
 function editUser(user) {
-  // Implementation for edit
-  console.log("Edit user:", user);
+  editForm.value = {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    password: "", // Leave empty - only update if filled
+    role: user.role,
+  };
+  showEditModal.value = true;
+}
+
+async function handleUpdateUser() {
+  try {
+    const updateData = {
+      name: editForm.value.name,
+      email: editForm.value.email,
+      role: editForm.value.role,
+    };
+
+    // Only include password if it was provided
+    if (editForm.value.password) {
+      updateData.password = editForm.value.password;
+    }
+
+    await usersStore.updateUser(editForm.value.id, updateData);
+    showEditModal.value = false;
+    editForm.value = {
+      id: "",
+      name: "",
+      email: "",
+      password: "",
+      role: "student",
+    };
+    await loadUsers();
+    window.$toast?.("User updated successfully!", "success");
+  } catch (error) {
+    window.$toast?.("Error updating user: " + error.message, "error");
+  }
 }
 
 async function confirmDelete(user) {
@@ -200,8 +295,9 @@ async function confirmDelete(user) {
     try {
       await usersStore.deleteUser(user._id);
       await loadUsers();
+      window.$toast?.("User deleted successfully!", "success");
     } catch (error) {
-      console.error("Error deleting user:", error);
+      window.$toast?.("Error deleting user: " + error.message, "error");
     }
   }
 }

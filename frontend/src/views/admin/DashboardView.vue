@@ -93,7 +93,7 @@ onMounted(async () => {
     const data = await getDashboardStats();
     stats.value = data;
   } catch (error) {
-    console.error("Error loading dashboard:", error);
+    window.$toast?.("Error loading dashboard: " + error.message, "error");
   } finally {
     loading.value = false;
   }

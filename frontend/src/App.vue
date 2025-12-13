@@ -1,6 +1,8 @@
 <template>
   <div id="app">
-    <router-view />
+    <ErrorBoundary>
+      <router-view />
+    </ErrorBoundary>
     <ToastNotification ref="toastRef" />
   </div>
 </template>
@@ -9,6 +11,7 @@
 import { ref, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import ToastNotification from "@/components/common/ToastNotification.vue";
+import ErrorBoundary from "@/components/common/ErrorBoundary.vue";
 
 const authStore = useAuthStore();
 const toastRef = ref(null);

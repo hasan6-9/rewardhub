@@ -59,8 +59,9 @@ async function handleConnect() {
   loading.value = true;
   try {
     await walletStore.connect();
+    window.$toast?.("Wallet connected successfully!", "success");
   } catch (error) {
-    alert("Error connecting wallet: " + error.message);
+    window.$toast?.("Error connecting wallet: " + error.message, "error");
   } finally {
     loading.value = false;
   }
@@ -69,8 +70,9 @@ async function handleConnect() {
 async function handleDisconnect() {
   try {
     await walletStore.disconnect();
+    window.$toast?.("Wallet disconnected successfully!", "success");
   } catch (error) {
-    alert("Error disconnecting wallet: " + error.message);
+    window.$toast?.("Error disconnecting wallet: " + error.message, "error");
   }
 }
 </script>

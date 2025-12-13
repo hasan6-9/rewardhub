@@ -70,7 +70,7 @@ async function loadData() {
     students.value = studentsData.students;
     achievements.value = achievementsData.achievements;
   } catch (error) {
-    console.error("Error loading data:", error);
+    window.$toast?.("Error loading data: " + error.message, "error");
   }
 }
 
@@ -78,10 +78,10 @@ async function handleAward() {
   loading.value = true;
   try {
     await awardAchievement(form.value);
-    alert("Achievement awarded successfully!");
+    window.$toast?.("Achievement awarded successfully!", "success");
     form.value = { studentId: "", achievementId: "" };
   } catch (error) {
-    alert("Error awarding achievement: " + error.message);
+    window.$toast?.("Error awarding achievement: " + error.message, "error");
   } finally {
     loading.value = false;
   }

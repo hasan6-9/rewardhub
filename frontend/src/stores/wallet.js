@@ -111,8 +111,8 @@ export const useWalletStore = defineStore("wallet", () => {
       balance.value = data.balance || 0;
       return data;
     } catch (err) {
-      console.error("Error fetching balance:", err);
-      // Don't throw, just log
+      // Silent fail - balance fetch is non-critical
+      balance.value = 0;
     }
   }
 
