@@ -14,7 +14,7 @@ export const generateNonce = async (walletAddress) => {
 // POST /api/users/wallet/verify
 export const verifyWallet = async (walletAddress, signature) => {
   const response = await api.post("/users/wallet/verify", {
-    walletAddress,
+    address: walletAddress, // Backend expects 'address', not 'walletAddress'
     signature,
   });
   return response.data;

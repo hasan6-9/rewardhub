@@ -17,11 +17,11 @@ const CONFIG = {
   INITIAL_RETRY_DELAY: 1000, // 1 second
   MAX_RETRY_DELAY: 10000, // 10 seconds
   RETRY_BACKOFF_MULTIPLIER: 2,
-  
+
   // Timeout settings
   TRANSACTION_TIMEOUT: 60000, // 60 seconds
   PROVIDER_TIMEOUT: 30000, // 30 seconds
-  
+
   // Gas settings
   GAS_LIMIT_BUFFER: 1.2, // 20% buffer on gas estimates
 };
@@ -34,15 +34,19 @@ const CONFIG = {
  * Create provider with proper configuration
  */
 function createProvider() {
-  const rpcUrl = process.env.SEPOLIA_RPC_URL || "http://127.0.0.1:8545";
-  
+  // Use GANACHE_RPC_URL for local development, fallback to SEPOLIA_RPC_URL for testnet
+  const rpcUrl =
+    process.env.GANACHE_RPC_URL ||
+    process.env.SEPOLIA_RPC_URL ||
+    "http://127.0.0.1:7545";
+
   // For local Ganache, use simpler configuration
   if (rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost")) {
     return new ethers.JsonRpcProvider(rpcUrl, undefined, {
       staticNetwork: true, // Faster for local networks
     });
   }
-  
+
   // For remote RPC (Sepolia, Infura, Alchemy), use more robust config
   return new ethers.JsonRpcProvider(rpcUrl, undefined, {
     staticNetwork: false,
@@ -70,14 +74,15 @@ console.log(`   Contract Address: ${process.env.CONTRACT_ADDRESS}`);
 /**
  * Sleep for specified milliseconds
  */
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Calculate retry delay with exponential backoff
  */
 function getRetryDelay(attemptNumber) {
   const delay = Math.min(
-    CONFIG.INITIAL_RETRY_DELAY * Math.pow(CONFIG.RETRY_BACKOFF_MULTIPLIER, attemptNumber),
+    CONFIG.INITIAL_RETRY_DELAY *
+      Math.pow(CONFIG.RETRY_BACKOFF_MULTIPLIER, attemptNumber),
     CONFIG.MAX_RETRY_DELAY
   );
   return delay;
@@ -99,9 +104,11 @@ function isRetryableError(error) {
     "nonce too low", // Can happen with concurrent requests
     "replacement fee too low",
   ];
-  
+
   const errorMessage = error.message.toLowerCase();
-  return retryableMessages.some(msg => errorMessage.includes(msg.toLowerCase()));
+  return retryableMessages.some((msg) =>
+    errorMessage.includes(msg.toLowerCase())
+  );
 }
 
 /**
@@ -109,36 +116,43 @@ function isRetryableError(error) {
  */
 async function withRetry(fn, operationName = "operation") {
   let lastError;
-  
+
   for (let attempt = 0; attempt < CONFIG.MAX_RETRIES; attempt++) {
     try {
       const result = await fn();
-      
+
       if (attempt > 0) {
         console.log(`✅ ${operationName} succeeded on attempt ${attempt + 1}`);
       }
-      
+
       return result;
     } catch (error) {
       lastError = error;
-      
+
       if (!isRetryableError(error)) {
-        console.error(`❌ ${operationName} failed with non-retryable error:`, error.message);
+        console.error(
+          `❌ ${operationName} failed with non-retryable error:`,
+          error.message
+        );
         throw error;
       }
-      
+
       if (attempt < CONFIG.MAX_RETRIES - 1) {
         const delay = getRetryDelay(attempt);
         console.warn(
-          `⚠️  ${operationName} failed (attempt ${attempt + 1}/${CONFIG.MAX_RETRIES}): ${error.message}`
+          `⚠️  ${operationName} failed (attempt ${attempt + 1}/${
+            CONFIG.MAX_RETRIES
+          }): ${error.message}`
         );
         console.warn(`   Retrying in ${delay}ms...`);
         await sleep(delay);
       }
     }
   }
-  
-  console.error(`❌ ${operationName} failed after ${CONFIG.MAX_RETRIES} attempts`);
+
+  console.error(
+    `❌ ${operationName} failed after ${CONFIG.MAX_RETRIES} attempts`
+  );
   throw new Error(
     `${operationName} failed after ${CONFIG.MAX_RETRIES} retries: ${lastError.message}`
   );
@@ -169,7 +183,7 @@ const getTokenBalance = async (walletAddress) => {
     const balance = await contract.balanceOf(walletAddress);
     const decimals = await getDecimals();
     const human = parseFloat(ethers.formatUnits(balance, decimals));
-    
+
     return {
       raw: balance.toString(),
       human: human,
@@ -247,24 +261,31 @@ async function sendTransactionWithRetry(contractMethod, args, operationName) {
     if (!isConnected) {
       throw new Error("Provider connection is not healthy");
     }
-    
+
     // Step 2: Estimate gas
     let gasEstimate;
     try {
       gasEstimate = await contractMethod.estimateGas(...args);
-      console.log(`   Gas estimate for ${operationName}: ${gasEstimate.toString()}`);
+      console.log(
+        `   Gas estimate for ${operationName}: ${gasEstimate.toString()}`
+      );
     } catch (gasError) {
-      console.error(`   Gas estimation failed for ${operationName}:`, gasError.message);
+      console.error(
+        `   Gas estimation failed for ${operationName}:`,
+        gasError.message
+      );
       throw new Error(`Gas estimation failed: ${gasError.message}`);
     }
-    
+
     // Step 3: Add buffer to gas limit
-    const gasLimit = BigInt(Math.floor(Number(gasEstimate) * CONFIG.GAS_LIMIT_BUFFER));
-    
+    const gasLimit = BigInt(
+      Math.floor(Number(gasEstimate) * CONFIG.GAS_LIMIT_BUFFER)
+    );
+
     // Step 4: Send transaction
     const tx = await contractMethod(...args, { gasLimit });
     console.log(`   Transaction sent: ${tx.hash}`);
-    
+
     // Step 5: Wait for confirmation with timeout
     const receipt = await Promise.race([
       tx.wait(),
@@ -275,7 +296,7 @@ async function sendTransactionWithRetry(contractMethod, args, operationName) {
         )
       ),
     ]);
-    
+
     console.log(`   Transaction confirmed in block ${receipt.blockNumber}`);
     return tx.hash;
   }, operationName);
@@ -287,13 +308,13 @@ async function sendTransactionWithRetry(contractMethod, args, operationName) {
 const addAchievement = async (title, tokenReward) => {
   try {
     console.log(`Adding achievement: "${title}" with reward ${tokenReward}`);
-    
+
     const txHash = await sendTransactionWithRetry(
       contract.addAchievement,
       [title, tokenReward],
       `addAchievement("${title}", ${tokenReward})`
     );
-    
+
     return txHash;
   } catch (err) {
     console.error("Error adding achievement:", err);
@@ -307,13 +328,13 @@ const addAchievement = async (title, tokenReward) => {
 const addPerk = async (title, tokenCost) => {
   try {
     console.log(`Adding perk: "${title}" with cost ${tokenCost}`);
-    
+
     const txHash = await sendTransactionWithRetry(
       contract.addPerk,
       [title, tokenCost],
       `addPerk("${title}", ${tokenCost})`
     );
-    
+
     return txHash;
   } catch (err) {
     console.error("Error adding perk:", err);
@@ -326,14 +347,16 @@ const addPerk = async (title, tokenCost) => {
  */
 const grantAchievement = async (studentAddress, achievementTitle) => {
   try {
-    console.log(`Granting achievement "${achievementTitle}" to ${studentAddress}`);
-    
+    console.log(
+      `Granting achievement "${achievementTitle}" to ${studentAddress}`
+    );
+
     const txHash = await sendTransactionWithRetry(
       contract.grantAchievement,
       [studentAddress, achievementTitle],
       `grantAchievement("${studentAddress}", "${achievementTitle}")`
     );
-    
+
     return txHash;
   } catch (err) {
     console.error("Error granting achievement:", err);
@@ -343,21 +366,40 @@ const grantAchievement = async (studentAddress, achievementTitle) => {
 
 /**
  * Redeem a perk (burns tokens)
+ * Note: Contract uses msg.sender to identify the student, so we only pass the perk title
  */
-const redeemPerk = async (studentAddress, perkTitle) => {
+const redeemPerk = async (perkTitle) => {
   try {
-    console.log(`Redeeming perk "${perkTitle}" for ${studentAddress}`);
-    
+    console.log(`Redeeming perk "${perkTitle}"`);
+
     const txHash = await sendTransactionWithRetry(
       contract.redeemPerk,
-      [studentAddress, perkTitle],
-      `redeemPerk("${studentAddress}", "${perkTitle}")`
+      [perkTitle],
+      `redeemPerk("${perkTitle}")`
     );
-    
+
     return txHash;
   } catch (err) {
     console.error("Error redeeming perk:", err);
     throw new Error(`Blockchain redeemPerk failed: ${err.message}`);
+  }
+};
+
+/**
+ * Check if a student is registered on the blockchain
+ */
+const isStudentRegistered = async (studentAddress) => {
+  try {
+    if (typeof contract.isStudent !== "function") {
+      console.warn("Contract does not have isStudent function");
+      return false;
+    }
+
+    const isRegistered = await contract.isStudent(studentAddress);
+    return isRegistered;
+  } catch (err) {
+    console.error("Error checking student registration:", err);
+    return false; // Return false on error to allow registration attempt
   }
 };
 
@@ -370,13 +412,13 @@ const registerStudent = async (studentAddress) => {
       console.warn("Contract does not have registerStudent function");
       return null;
     }
-    
+
     const txHash = await sendTransactionWithRetry(
       contract.registerStudent,
       [studentAddress],
       `registerStudent("${studentAddress}")`
     );
-    
+
     return txHash;
   } catch (err) {
     console.error("Error registering student:", err);
@@ -396,6 +438,90 @@ const mint = async (studentAddress, amount) => {
   );
 };
 
+/**
+ * Update achievement on blockchain (creates new version, deactivates old)
+ */
+const updateAchievement = async (oldTitle, newTitle, newRewardAmount) => {
+  try {
+    console.log(
+      `Updating achievement: "${oldTitle}" -> "${newTitle}" with reward ${newRewardAmount}`
+    );
+
+    const txHash = await sendTransactionWithRetry(
+      contract.updateAchievement,
+      [oldTitle, newTitle, newRewardAmount],
+      `updateAchievement("${oldTitle}", "${newTitle}", ${newRewardAmount})`
+    );
+
+    return txHash;
+  } catch (err) {
+    console.error("Error updating achievement:", err);
+    throw new Error(`Blockchain updateAchievement failed: ${err.message}`);
+  }
+};
+
+/**
+ * Deactivate achievement on blockchain (soft delete)
+ */
+const deactivateAchievement = async (title) => {
+  try {
+    console.log(`Deactivating achievement: "${title}"`);
+
+    const txHash = await sendTransactionWithRetry(
+      contract.deactivateAchievement,
+      [title],
+      `deactivateAchievement("${title}")`
+    );
+
+    return txHash;
+  } catch (err) {
+    console.error("Error deactivating achievement:", err);
+    throw new Error(`Blockchain deactivateAchievement failed: ${err.message}`);
+  }
+};
+
+/**
+ * Update perk on blockchain (creates new version, deactivates old)
+ */
+const updatePerk = async (oldTitle, newTitle, newCost) => {
+  try {
+    console.log(
+      `Updating perk: "${oldTitle}" -> "${newTitle}" with cost ${newCost}`
+    );
+
+    const txHash = await sendTransactionWithRetry(
+      contract.updatePerk,
+      [oldTitle, newTitle, newCost],
+      `updatePerk("${oldTitle}", "${newTitle}", ${newCost})`
+    );
+
+    return txHash;
+  } catch (err) {
+    console.error("Error updating perk:", err);
+    throw new Error(`Blockchain updatePerk failed: ${err.message}`);
+  }
+};
+
+/**
+ * Deactivate perk on blockchain (soft delete)
+ */
+const deactivatePerk = async (title) => {
+  try {
+    console.log(`Deactivating perk: "${title}"`);
+
+    const txHash = await sendTransactionWithRetry(
+      contract.deactivatePerk,
+      [title],
+      `deactivatePerk("${title}")`
+    );
+
+    return txHash;
+  } catch (err) {
+    console.error("Error deactivating perk:", err);
+    throw new Error(`Blockchain deactivatePerk failed: ${err.message}`);
+  }
+};
+
 // ============================================================================
 // EXPORTS
 // ============================================================================
@@ -408,11 +534,16 @@ module.exports = {
   getTotalSupply,
   getDecimals,
   addAchievement,
+  updateAchievement,
+  deactivateAchievement,
   addPerk,
+  updatePerk,
+  deactivatePerk,
   grantAchievement,
   mint,
   redeemPerk,
   registerStudent,
+  isStudentRegistered,
   achievementExists,
   perkExists,
   validateConnection,

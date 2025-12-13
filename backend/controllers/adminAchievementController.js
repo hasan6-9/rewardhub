@@ -12,15 +12,17 @@ exports.createAchievement = async (req, res) => {
 
     // Validate required fields
     if (!title || tokenReward === undefined) {
-      return res.status(400).json({ 
-        msg: "Missing required fields: title, tokenReward" 
+      return res.status(400).json({
+        msg: "Missing required fields: title, tokenReward",
       });
     }
 
     // Check if achievement with same title exists
     const existing = await Achievement.findOne({ title });
     if (existing) {
-      return res.status(400).json({ msg: "Achievement with this title already exists" });
+      return res
+        .status(400)
+        .json({ msg: "Achievement with this title already exists" });
     }
 
     // Create achievement in database
@@ -109,8 +111,10 @@ exports.listAchievements = async (req, res) => {
  */
 exports.getAchievement = async (req, res) => {
   try {
-    const achievement = await Achievement.findById(req.params.id)
-      .populate("createdBy", "name email");
+    const achievement = await Achievement.findById(req.params.id).populate(
+      "createdBy",
+      "name email"
+    );
 
     if (!achievement) {
       return res.status(404).json({ msg: "Achievement not found" });
@@ -137,16 +141,41 @@ exports.updateAchievement = async (req, res) => {
       return res.status(404).json({ msg: "Achievement not found" });
     }
 
-    // Update fields
-    if (title !== undefined) achievement.title = title;
-    if (description !== undefined) achievement.description = description;
-    if (tokenReward !== undefined) achievement.tokenReward = tokenReward;
-
-    // Optionally sync to blockchain
+    const oldTitle = achievement.title;
     let onChainWarning = null;
+
+    // If already on-chain and critical fields changed, update on blockchain
+    if (achievement.onChainCreated && syncOnChain !== false) {
+      const titleChanged = title && title !== oldTitle;
+      const rewardChanged =
+        tokenReward && tokenReward !== achievement.tokenReward;
+
+      if (titleChanged || rewardChanged) {
+        try {
+          const txHash = await blockchain.updateAchievement(
+            oldTitle,
+            title || oldTitle,
+            tokenReward || achievement.tokenReward
+          );
+
+          achievement.onChainUpdateTx = txHash;
+          achievement.onChainUpdatedAt = new Date();
+
+          console.log(`✅ Achievement updated on blockchain: ${txHash}`);
+        } catch (blockchainErr) {
+          console.error("Blockchain update error:", blockchainErr);
+          onChainWarning = `Achievement updated in database but blockchain update failed: ${blockchainErr.message}`;
+        }
+      }
+    }
+
+    // Optionally sync to blockchain if not already synced
     if (syncOnChain === true && !achievement.onChainCreated) {
       try {
-        const txHash = await blockchain.addAchievement(achievement.title, achievement.tokenReward);
+        const txHash = await blockchain.addAchievement(
+          title || achievement.title,
+          tokenReward || achievement.tokenReward
+        );
         achievement.onChainCreated = true;
         achievement.onChainTx = txHash;
       } catch (blockchainErr) {
@@ -154,6 +183,11 @@ exports.updateAchievement = async (req, res) => {
         onChainWarning = `Achievement updated in database but blockchain sync failed: ${blockchainErr.message}`;
       }
     }
+
+    // Update database fields
+    if (title !== undefined) achievement.title = title;
+    if (description !== undefined) achievement.description = description;
+    if (tokenReward !== undefined) achievement.tokenReward = tokenReward;
 
     await achievement.save();
 
@@ -179,16 +213,39 @@ exports.updateAchievement = async (req, res) => {
  */
 exports.deleteAchievement = async (req, res) => {
   try {
-    const achievement = await Achievement.findByIdAndDelete(req.params.id);
+    const achievement = await Achievement.findById(req.params.id);
 
     if (!achievement) {
       return res.status(404).json({ msg: "Achievement not found" });
     }
 
-    res.json({ 
+    let onChainWarning = null;
+
+    // If on-chain, deactivate instead of delete
+    if (achievement.onChainCreated) {
+      try {
+        const txHash = await blockchain.deactivateAchievement(
+          achievement.title
+        );
+        console.log(`✅ Achievement deactivated on blockchain: ${txHash}`);
+      } catch (blockchainErr) {
+        console.error("Blockchain deactivation error:", blockchainErr);
+        onChainWarning = `Achievement deleted from database but blockchain deactivation failed: ${blockchainErr.message}`;
+      }
+    }
+
+    // Delete from database
+    await Achievement.findByIdAndDelete(req.params.id);
+
+    const response = {
       msg: "Achievement deleted successfully",
-      achievement 
-    });
+    };
+
+    if (onChainWarning) {
+      response.warning = onChainWarning;
+    }
+
+    res.json(response);
   } catch (err) {
     console.error("Error deleting achievement:", err);
     res.status(500).json({ msg: "Server error", error: err.message });

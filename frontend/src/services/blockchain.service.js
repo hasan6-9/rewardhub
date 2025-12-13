@@ -50,15 +50,24 @@ export const getCurrentAccount = async () => {
   return accounts[0] || null;
 };
 
-// Sign message with MetaMask
-export const signMessage = async (message) => {
+// Sign message with MetaMask using personal_sign
+export const signMessage = async (message, account) => {
   if (!isMetaMaskInstalled()) {
     throw new Error("MetaMask is not installed");
   }
 
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-  const signature = await signer.signMessage(message);
+  // If no account provided, get the current account
+  if (!account) {
+    const accounts = await window.ethereum.request({ method: "eth_accounts" });
+    account = accounts[0];
+  }
+
+  // Use personal_sign with explicit account parameter
+  const signature = await window.ethereum.request({
+    method: "personal_sign",
+    params: [message, account],
+  });
+
   return signature;
 };
 

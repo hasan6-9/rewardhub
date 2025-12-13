@@ -16,9 +16,9 @@ exports.generateNonce = async (req, res) => {
     req.userDoc.walletNonce = nonce;
     await req.userDoc.save();
 
-    res.json({ 
+    res.json({
       nonce,
-      msg: "Sign this nonce with your MetaMask wallet using personal_sign" 
+      msg: "Sign this nonce with your MetaMask wallet using personal_sign",
     });
   } catch (err) {
     console.error("Error generating nonce:", err);
@@ -38,7 +38,9 @@ exports.verifyWallet = async (req, res) => {
 
     // Validate inputs
     if (!address || !signature) {
-      return res.status(400).json({ msg: "Missing required fields: address, signature" });
+      return res
+        .status(400)
+        .json({ msg: "Missing required fields: address, signature" });
     }
 
     // Validate address format
@@ -48,23 +50,24 @@ exports.verifyWallet = async (req, res) => {
 
     // Check if nonce exists
     if (!req.userDoc.walletNonce) {
-      return res.status(400).json({ 
-        msg: "No nonce found. Please request a nonce first using POST /api/users/wallet/nonce" 
+      return res.status(400).json({
+        msg: "No nonce found. Please request a nonce first using POST /api/users/wallet/nonce",
       });
     }
 
     // Verify signature
     try {
       const recoveredAddress = ethers.verifyMessage(
-        req.userDoc.walletNonce, 
+        req.userDoc.walletNonce,
         signature
       );
 
       // Check if recovered address matches provided address
       if (recoveredAddress.toLowerCase() !== address.toLowerCase()) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           msg: "Signature verification failed: address mismatch",
-          details: "The signature was not signed by the provided wallet address"
+          details:
+            "The signature was not signed by the provided wallet address",
         });
       }
 
@@ -74,20 +77,48 @@ exports.verifyWallet = async (req, res) => {
       req.userDoc.walletNonce = null; // Clear nonce after successful verification
       await req.userDoc.save();
 
-      res.json({ 
+      // If user is a student, register them on the blockchain
+      if (req.userDoc.role === "student") {
+        try {
+          const blockchain = require("../blockchain/contract");
+
+          // Check if student is already registered on blockchain
+          const isRegistered = await blockchain.isStudentRegistered(
+            address.toLowerCase()
+          );
+
+          if (!isRegistered) {
+            console.log(
+              `Registering student ${req.userDoc.email} on blockchain...`
+            );
+            await blockchain.registerStudent(address.toLowerCase());
+            console.log(
+              `✅ Student ${req.userDoc.email} registered on blockchain`
+            );
+          } else {
+            console.log(
+              `Student ${req.userDoc.email} already registered on blockchain`
+            );
+          }
+        } catch (blockchainErr) {
+          console.error("Blockchain registration error:", blockchainErr);
+          // Don't fail the wallet connection if blockchain registration fails
+          // Just log the error - the wallet is still connected
+        }
+      }
+
+      res.json({
         msg: "Wallet connected successfully",
         walletAddress: req.userDoc.walletAddress,
-        walletConnected: true
+        walletConnected: true,
       });
-
     } catch (verifyErr) {
       console.error("Signature verification error:", verifyErr);
-      return res.status(400).json({ 
+      return res.status(400).json({
         msg: "Signature verification failed",
-        error: verifyErr.message 
+        error: verifyErr.message,
       });
     }
-
   } catch (err) {
     console.error("Error in verifyWallet:", err);
     res.status(500).json({ msg: "Server error", error: err.message });
@@ -106,9 +137,9 @@ exports.disconnectWallet = async (req, res) => {
     req.userDoc.walletNonce = null;
     await req.userDoc.save();
 
-    res.json({ 
+    res.json({
       msg: "Wallet disconnected successfully",
-      walletConnected: false
+      walletConnected: false,
     });
   } catch (err) {
     console.error("Error disconnecting wallet:", err);

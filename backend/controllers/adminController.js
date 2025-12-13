@@ -21,19 +21,34 @@ exports.getDashboardStats = async (req, res) => {
     const totalPerks = await Reward.countDocuments();
 
     // Count users by role
-    const totalRegisteredStudents = await User.countDocuments({ role: "student" });
-    const totalRegisteredFaculty = await User.countDocuments({ role: "faculty" });
-    
+    const totalRegisteredStudents = await User.countDocuments({
+      role: "student",
+    });
+    const totalRegisteredFaculty = await User.countDocuments({
+      role: "faculty",
+    });
+    const totalRegisteredAdmins = await User.countDocuments({ role: "admin" });
+    const totalUsers =
+      totalRegisteredStudents + totalRegisteredFaculty + totalRegisteredAdmins;
+
     // Count students without wallet
-    const studentsWithNoWallet = await User.countDocuments({ 
-      role: "student", 
-      walletConnected: false 
+    const studentsWithNoWallet = await User.countDocuments({
+      role: "student",
+      walletConnected: false,
+    });
+
+    // Count total connected wallets (all roles)
+    const totalConnectedWallets = await User.countDocuments({
+      walletConnected: true,
+      walletAddress: { $ne: null },
     });
 
     // Calculate total tokens redeemed from Redemption records
-    const redemptions = await Redemption.find({ status: "approved" })
-      .populate("rewardId", "tokenCost");
-    
+    const redemptions = await Redemption.find({ status: "approved" }).populate(
+      "rewardId",
+      "tokenCost"
+    );
+
     const totalTokensRedeemed = redemptions.reduce((sum, redemption) => {
       return sum + (redemption.rewardId?.tokenCost || 0);
     }, 0);
@@ -51,16 +66,18 @@ exports.getDashboardStats = async (req, res) => {
       totalTokensAvailableInBlockchain = await blockchain.getTotalSupply();
 
       // Get all students with connected wallets
-      const studentsWithWallets = await User.find({ 
-        role: "student", 
+      const studentsWithWallets = await User.find({
+        role: "student",
         walletConnected: true,
-        walletAddress: { $ne: null }
+        walletAddress: { $ne: null },
       }).select("name email walletAddress");
 
       // Fetch balances for all students
       const balancePromises = studentsWithWallets.map(async (student) => {
         try {
-          const balanceData = await blockchain.getTokenBalance(student.walletAddress);
+          const balanceData = await blockchain.getTokenBalance(
+            student.walletAddress
+          );
           return {
             studentId: student._id,
             name: student.name,
@@ -91,7 +108,6 @@ exports.getDashboardStats = async (req, res) => {
       topHolders = allBalances
         .sort((a, b) => b.balance - a.balance)
         .slice(0, 10);
-
     } catch (blockchainErr) {
       console.error("Error fetching blockchain statistics:", blockchainErr);
       // Continue with database stats even if blockchain fails
@@ -107,6 +123,9 @@ exports.getDashboardStats = async (req, res) => {
       totalPerks,
       totalRegisteredStudents,
       totalRegisteredFaculty,
+      totalRegisteredAdmins,
+      totalUsers,
+      totalConnectedWallets,
       totalTokensRedeemed,
       totalAchievementsCreated: totalAchievements, // Alias for consistency
       totalRewardsCreated: totalPerks, // Alias for consistency
@@ -120,7 +139,6 @@ exports.getDashboardStats = async (req, res) => {
       // Metadata
       timestamp: new Date().toISOString(),
     });
-
   } catch (err) {
     console.error("Error in getDashboardStats:", err);
     res.status(500).json({ msg: "Server error", error: err.message });

@@ -48,11 +48,9 @@ import { ref, onMounted } from "vue";
 import AppHeader from "@/components/common/AppHeader.vue";
 import AppSidebar from "@/components/common/AppSidebar.vue";
 import LoadingSpinner from "@/components/common/LoadingSpinner.vue";
-import { useAuthStore } from "@/stores/auth";
-import { getStudentAchievementsByStudentId } from "@/services/studentAchievement.service";
+import { getMyAchievements } from "@/services/studentAchievement.service";
 import { formatDate } from "@/utils/helpers";
 
-const authStore = useAuthStore();
 const achievements = ref([]);
 const loading = ref(false);
 
@@ -65,10 +63,14 @@ function getStatusClass(status) {
 async function loadAchievements() {
   loading.value = true;
   try {
-    const data = await getStudentAchievementsByStudentId(authStore.user._id);
-    achievements.value = data.achievements;
+    const data = await getMyAchievements();
+    // Only show confirmed achievements to students
+    achievements.value = data.achievements.filter(
+      (a) => a.status === "confirmed"
+    );
   } catch (error) {
     console.error("Error loading achievements:", error);
+    window.$toast?.("Error loading achievements: " + error.message, "error");
   } finally {
     loading.value = false;
   }

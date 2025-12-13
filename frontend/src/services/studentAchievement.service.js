@@ -17,6 +17,12 @@ export const getStudentAchievements = async (params = {}) => {
   return response.data;
 };
 
+// GET /api/student-achievements/me (current user's achievements)
+export const getMyAchievements = async () => {
+  const response = await api.get("/student-achievements/me");
+  return response.data;
+};
+
 // GET /api/student-achievements/:id
 export const getStudentAchievementById = async (id) => {
   const response = await api.get(`/student-achievements/${id}`);

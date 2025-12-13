@@ -49,9 +49,9 @@
                 </thead>
                 <tbody>
                   <tr v-for="redemption in redemptions" :key="redemption._id">
-                    <td>{{ formatDate(redemption.createdAt) }}</td>
-                    <td>{{ redemption.reward?.title || "N/A" }}</td>
-                    <td>{{ redemption.tokenCost }} tokens</td>
+                    <td>{{ formatDate(redemption.date) }}</td>
+                    <td>{{ redemption.rewardId?.title || "N/A" }}</td>
+                    <td>{{ redemption.rewardId?.tokenCost || 0 }} tokens</td>
                     <td>
                       <span class="badge badge-success">Redeemed</span>
                     </td>

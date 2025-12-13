@@ -46,6 +46,8 @@ async function connectWallet() {
   try {
     await walletStore.connect();
     window.$toast?.("Wallet connected successfully!", "success");
+    // Fetch balance after connecting
+    await walletStore.fetchBalance();
   } catch (error) {
     window.$toast?.("Error connecting wallet: " + error.message, "error");
   }
@@ -53,6 +55,10 @@ async function connectWallet() {
 
 onMounted(async () => {
   await walletStore.checkStatus();
+  // Fetch balance if wallet is already connected
+  if (walletStore.isConnected && walletStore.address) {
+    await walletStore.fetchBalance();
+  }
   walletStore.setupListeners();
 });
 </script>

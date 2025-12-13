@@ -19,7 +19,7 @@ exports.createAchievement = async (req, res) => {
 exports.getAchievements = async (req, res) => {
   try {
     const achievements = await Achievement.find();
-    res.json(achievements);
+    res.json({ achievements }); // Return as object with achievements property
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

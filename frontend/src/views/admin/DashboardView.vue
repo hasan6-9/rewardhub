@@ -12,41 +12,72 @@
         <LoadingSpinner v-if="loading" message="Loading dashboard..." />
 
         <div v-else class="stats-grid">
-          <!-- User Stats -->
+          <!-- Total Users Stats -->
           <div class="stat-card card">
             <h3>Total Users</h3>
             <p class="stat-value">{{ stats.totalUsers || 0 }}</p>
             <div class="stat-breakdown">
-              <span>Students: {{ stats.totalStudents || 0 }}</span>
-              <span>Faculty: {{ stats.totalFaculty || 0 }}</span>
-              <span>Admins: {{ stats.totalAdmins || 0 }}</span>
+              <span>Students: {{ stats.totalRegisteredStudents || 0 }}</span>
+              <span>Faculty: {{ stats.totalRegisteredFaculty || 0 }}</span>
+              <span>Admins: {{ stats.totalRegisteredAdmins || 0 }}</span>
             </div>
           </div>
 
-          <!-- Wallet Stats -->
+          <!-- Connected Wallets Stats -->
           <div class="stat-card card">
-            <h3>Wallets Connected</h3>
-            <p class="stat-value">{{ stats.walletsConnected || 0 }}</p>
-            <p class="text-secondary">Active wallet connections</p>
+            <h3>Connected Wallets</h3>
+            <p class="stat-value">{{ stats.totalConnectedWallets || 0 }}</p>
+            <div class="stat-breakdown">
+              <span>No Wallet: {{ stats.studentsWithNoWallet || 0 }}</span>
+            </div>
+          </div>
+
+          <!-- Token Stats -->
+          <div class="stat-card card">
+            <h3>Tokens Distributed</h3>
+            <p class="stat-value">
+              {{ stats.totalTokensDistributedToStudents || 0 }}
+            </p>
+            <div class="stat-breakdown">
+              <span>Redeemed: {{ stats.totalTokensRedeemed || 0 }}</span>
+              <span
+                >Total Supply:
+                {{ stats.totalTokensAvailableInBlockchain || 0 }}</span
+              >
+            </div>
           </div>
 
           <!-- Achievement Stats -->
           <div class="stat-card card">
             <h3>Achievements</h3>
             <p class="stat-value">{{ stats.totalAchievements || 0 }}</p>
-            <div class="stat-breakdown">
-              <span>Awarded: {{ stats.totalAchievementsAwarded || 0 }}</span>
-              <span>On-chain: {{ stats.onChainAchievements || 0 }}</span>
-            </div>
+            <p class="text-secondary">Total achievements created</p>
           </div>
 
           <!-- Perk Stats -->
           <div class="stat-card card">
             <h3>Perks</h3>
             <p class="stat-value">{{ stats.totalPerks || 0 }}</p>
-            <div class="stat-breakdown">
-              <span>Redemptions: {{ stats.totalRedemptions || 0 }}</span>
-              <span>On-chain: {{ stats.onChainPerks || 0 }}</span>
+            <p class="text-secondary">Total perks available</p>
+          </div>
+
+          <!-- Top Holders -->
+          <div
+            v-if="stats.topHolders && stats.topHolders.length > 0"
+            class="stat-card card"
+            style="grid-column: span 2"
+          >
+            <h3>Top Token Holders</h3>
+            <div class="top-holders-list">
+              <div
+                v-for="(holder, index) in stats.topHolders.slice(0, 5)"
+                :key="holder.studentId"
+                class="holder-item"
+              >
+                <span class="holder-rank">{{ index + 1 }}.</span>
+                <span class="holder-name">{{ holder.name }}</span>
+                <span class="holder-balance">{{ holder.balance }} tokens</span>
+              </div>
             </div>
           </div>
         </div>
@@ -185,6 +216,37 @@ onMounted(async () => {
 .activity-date {
   font-size: var(--font-size-xs);
   margin: 0;
+}
+
+.top-holders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.holder-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: var(--border-radius);
+}
+
+.holder-rank {
+  font-weight: 700;
+  color: var(--primary-color);
+  min-width: 2rem;
+}
+
+.holder-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.holder-balance {
+  font-weight: 600;
+  color: var(--success-color);
 }
 
 @media (max-width: 768px) {

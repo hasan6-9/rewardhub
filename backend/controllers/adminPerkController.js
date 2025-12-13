@@ -12,15 +12,17 @@ exports.createPerk = async (req, res) => {
 
     // Validate required fields
     if (!title || tokenCost === undefined) {
-      return res.status(400).json({ 
-        msg: "Missing required fields: title, tokenCost" 
+      return res.status(400).json({
+        msg: "Missing required fields: title, tokenCost",
       });
     }
 
     // Check if perk with same title exists
     const existing = await Reward.findOne({ title });
     if (existing) {
-      return res.status(400).json({ msg: "Perk with this title already exists" });
+      return res
+        .status(400)
+        .json({ msg: "Perk with this title already exists" });
     }
 
     // Create perk in database
@@ -109,8 +111,10 @@ exports.listPerks = async (req, res) => {
  */
 exports.getPerk = async (req, res) => {
   try {
-    const perk = await Reward.findById(req.params.id)
-      .populate("createdBy", "name email");
+    const perk = await Reward.findById(req.params.id).populate(
+      "createdBy",
+      "name email"
+    );
 
     if (!perk) {
       return res.status(404).json({ msg: "Perk not found" });
@@ -137,16 +141,40 @@ exports.updatePerk = async (req, res) => {
       return res.status(404).json({ msg: "Perk not found" });
     }
 
-    // Update fields
-    if (title !== undefined) perk.title = title;
-    if (description !== undefined) perk.description = description;
-    if (tokenCost !== undefined) perk.tokenCost = tokenCost;
-
-    // Optionally sync to blockchain
+    const oldTitle = perk.title;
     let onChainWarning = null;
+
+    // If already on-chain and critical fields changed, update on blockchain
+    if (perk.onChainCreated && syncOnChain !== false) {
+      const titleChanged = title && title !== oldTitle;
+      const costChanged = tokenCost && tokenCost !== perk.tokenCost;
+
+      if (titleChanged || costChanged) {
+        try {
+          const txHash = await blockchain.updatePerk(
+            oldTitle,
+            title || oldTitle,
+            tokenCost || perk.tokenCost
+          );
+
+          perk.onChainUpdateTx = txHash;
+          perk.onChainUpdatedAt = new Date();
+
+          console.log(`✅ Perk updated on blockchain: ${txHash}`);
+        } catch (blockchainErr) {
+          console.error("Blockchain update error:", blockchainErr);
+          onChainWarning = `Perk updated in database but blockchain update failed: ${blockchainErr.message}`;
+        }
+      }
+    }
+
+    // Optionally sync to blockchain if not already synced
     if (syncOnChain === true && !perk.onChainCreated) {
       try {
-        const txHash = await blockchain.addPerk(perk.title, perk.tokenCost);
+        const txHash = await blockchain.addPerk(
+          title || perk.title,
+          tokenCost || perk.tokenCost
+        );
         perk.onChainCreated = true;
         perk.onChainTx = txHash;
       } catch (blockchainErr) {
@@ -154,6 +182,11 @@ exports.updatePerk = async (req, res) => {
         onChainWarning = `Perk updated in database but blockchain sync failed: ${blockchainErr.message}`;
       }
     }
+
+    // Update database fields
+    if (title !== undefined) perk.title = title;
+    if (description !== undefined) perk.description = description;
+    if (tokenCost !== undefined) perk.tokenCost = tokenCost;
 
     await perk.save();
 
@@ -179,16 +212,37 @@ exports.updatePerk = async (req, res) => {
  */
 exports.deletePerk = async (req, res) => {
   try {
-    const perk = await Reward.findByIdAndDelete(req.params.id);
+    const perk = await Reward.findById(req.params.id);
 
     if (!perk) {
       return res.status(404).json({ msg: "Perk not found" });
     }
 
-    res.json({ 
+    let onChainWarning = null;
+
+    // If on-chain, deactivate instead of delete
+    if (perk.onChainCreated) {
+      try {
+        const txHash = await blockchain.deactivatePerk(perk.title);
+        console.log(`✅ Perk deactivated on blockchain: ${txHash}`);
+      } catch (blockchainErr) {
+        console.error("Blockchain deactivation error:", blockchainErr);
+        onChainWarning = `Perk deleted from database but blockchain deactivation failed: ${blockchainErr.message}`;
+      }
+    }
+
+    // Delete from database
+    await Reward.findByIdAndDelete(req.params.id);
+
+    const response = {
       msg: "Perk deleted successfully",
-      perk 
-    });
+    };
+
+    if (onChainWarning) {
+      response.warning = onChainWarning;
+    }
+
+    res.json(response);
   } catch (err) {
     console.error("Error deleting perk:", err);
     res.status(500).json({ msg: "Server error", error: err.message });

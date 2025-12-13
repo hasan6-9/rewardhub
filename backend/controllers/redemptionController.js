@@ -46,8 +46,27 @@ exports.redeemReward = async (req, res) => {
       return res.status(400).json({ msg: "Not enough tokens" });
     }
 
-    // Call the smart contract to redeem perk
-    const txHash = await blockchain.redeemPerk(reward.title); // Uses msg.sender
+    let txHash = null;
+
+    // Only call blockchain if perk is synced on-chain
+    if (reward.onChainCreated) {
+      try {
+        txHash = await blockchain.redeemPerk(reward.title);
+        console.log(
+          `✅ Perk "${reward.title}" redeemed on blockchain: ${txHash}`
+        );
+      } catch (blockchainErr) {
+        console.error("Blockchain redemption failed:", blockchainErr);
+        return res.status(500).json({
+          error: "Blockchain redemption failed: " + blockchainErr.message,
+          hint: "This perk may not be synced to blockchain. Try redeeming a different perk.",
+        });
+      }
+    } else {
+      console.log(
+        `⚠️ Perk "${reward.title}" not on blockchain - database-only redemption`
+      );
+    }
 
     // Save to DB
     const redemption = await Redemption.create({
@@ -57,8 +76,19 @@ exports.redeemReward = async (req, res) => {
       status: "approved",
     });
 
-    res.status(201).json(redemption);
+    // Populate the reward details for response
+    const populatedRedemption = await Redemption.findById(
+      redemption._id
+    ).populate("reward", "title description tokenCost");
+
+    res.status(201).json({
+      msg: "Perk redeemed successfully!",
+      redemption: populatedRedemption,
+      txHash,
+      onChain: !!reward.onChainCreated,
+    });
   } catch (err) {
+    console.error("Error in redeemReward:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -69,10 +99,11 @@ exports.getRedemptionsByStudent = async (req, res) => {
     const redemptions = await Redemption.find({
       studentId: req.params.studentId,
     })
-      .populate("rewardId")
+      .populate("rewardId", "title description tokenCost")
       .sort({ date: -1 });
-    res.json(redemptions);
+    res.json({ redemptions }); // Return as object with redemptions property
   } catch (err) {
+    console.error("Error fetching redemptions:", err);
     res.status(500).json({ error: err.message });
   }
 };

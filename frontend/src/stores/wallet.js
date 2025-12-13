@@ -51,9 +51,11 @@ export const useWalletStore = defineStore("wallet", () => {
       // Get nonce from backend
       const { nonce } = await walletService.generateNonce(walletAddress);
 
-      // Sign nonce with MetaMask
-      const message = `Sign this message to verify your wallet ownership. Nonce: ${nonce}`;
-      const signature = await blockchainService.signMessage(message);
+      // Sign the exact nonce with MetaMask using the specific wallet address
+      const signature = await blockchainService.signMessage(
+        nonce,
+        walletAddress
+      );
 
       // Verify signature with backend
       const data = await walletService.verifyWallet(walletAddress, signature);
@@ -108,9 +110,11 @@ export const useWalletStore = defineStore("wallet", () => {
 
     try {
       const data = await blockchainService.getTokenBalance(address.value);
-      balance.value = data.balance || 0;
+      // Backend returns { raw, human } - use human for display
+      balance.value = data.human || 0;
       return data;
     } catch (err) {
+      console.error("Error fetching balance:", err);
       // Silent fail - balance fetch is non-critical
       balance.value = 0;
     }

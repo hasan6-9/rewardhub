@@ -15,7 +15,7 @@ exports.createReward = async (req, res) => {
 exports.getAllRewards = async (req, res) => {
   try {
     const rewards = await Reward.find();
-    res.json(rewards);
+    res.json({ rewards }); // Return as object with rewards property
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -53,9 +53,10 @@ import { ref, onMounted } from "vue";
 import AppHeader from "@/components/common/AppHeader.vue";
 import AppSidebar from "@/components/common/AppSidebar.vue";
 import { getStudents } from "@/services/admin.service";
-import { getAchievements } from "@/services/achievement.service";
+import { useAchievementsStore } from "@/stores/achievements";
 import { awardAchievement } from "@/services/studentAchievement.service";
 
+const achievementsStore = useAchievementsStore();
 const students = ref([]);
 const achievements = ref([]);
 const loading = ref(false);
@@ -63,13 +64,15 @@ const form = ref({ studentId: "", achievementId: "" });
 
 async function loadData() {
   try {
-    const [studentsData, achievementsData] = await Promise.all([
-      getStudents(),
-      getAchievements(),
-    ]);
+    // Fetch students and achievements
+    const studentsData = await getStudents();
     students.value = studentsData.students;
-    achievements.value = achievementsData.achievements;
+
+    // Fetch achievements using the store
+    await achievementsStore.fetchPublicAchievements();
+    achievements.value = achievementsStore.achievements;
   } catch (error) {
+    console.error("Error loading data:", error);
     window.$toast?.("Error loading data: " + error.message, "error");
   }
 }
@@ -81,6 +84,7 @@ async function handleAward() {
     window.$toast?.("Achievement awarded successfully!", "success");
     form.value = { studentId: "", achievementId: "" };
   } catch (error) {
+    console.error("Error awarding achievement:", error);
     window.$toast?.("Error awarding achievement: " + error.message, "error");
   } finally {
     loading.value = false;
